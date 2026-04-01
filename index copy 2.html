@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>보험 리모델링 제안 대시보드</title>
+  <!-- React & Babel CDN -->
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    @font-face {
+      font-family: 'TossProductSans';
+      src: url('./TossProductSansOTF-Regular.otf') format('opentype');
+      font-weight: 400;
+      font-style: normal;
+    }
+
+    :root {
+      --primary: #3182F6;
+      --primary-hover: #1B64DA;
+      --bg: #F2F4F7;
+      --white: #FFFFFF;
+      --card-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+      --border-radius-lg: 16px;
+      --border-radius-sm: 8px;
+      --text-main: #191F28;
+      --text-sub: #4E5968;
+      --text-mute: #8B95A1;
+      --border-color: #E5E8EB;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'TossProductSans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      letter-spacing: -0.02em;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text-main);
+      padding: 30px 20px;
+      line-height: 1.4;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    header {
+      margin-bottom: 24px;
+    }
+
+    .editable-title {
+      width: 100%;
+      border: none;
+      background: transparent;
+      font-size: 26px;
+      font-weight: 800;
+      margin-bottom: 2px;
+      outline: none;
+      color: var(--text-main);
+    }
+
+    .editable-subtitle {
+      width: 100%;
+      border: none;
+      background: transparent;
+      font-size: 14px;
+      color: var(--text-sub);
+      outline: none;
+      font-weight: 500;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 20px;
+      padding: 4px;
+      background: rgba(0, 0, 0, 0.05);
+      border-radius: 10px;
+      width: fit-content;
+    }
+
+    .tab {
+      padding: 6px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 13px;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--text-sub);
+    }
+
+    .tab.active {
+      background: var(--white);
+      color: var(--primary);
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .btn-add-tab {
+      background: transparent;
+      border: none;
+      border-radius: 8px;
+      padding: 6px 12px;
+      cursor: pointer;
+      color: var(--text-mute);
+      font-weight: 700;
+      font-size: 12px;
+    }
+
+    .btn-add-tab:hover {
+      color: var(--text-main);
+    }
+
+    .section-card {
+      background: var(--white);
+      border-radius: var(--border-radius-lg);
+      padding: 18px;
+      margin-bottom: 16px;
+      box-shadow: var(--card-shadow);
+      border: 1px solid rgba(0, 0, 0, 0.01);
+    }
+
+    .section-card.dragging {
+      opacity: 0.5;
+      transform: scale(0.995);
+      border: 2px dashed var(--primary);
+    }
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+      position: relative;
+    }
+
+    .section-title {
+      font-size: 16px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--text-main);
+    }
+
+    .ins-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 12px;
+    }
+
+    .ins-card {
+      background: #F9FAFB;
+      border-radius: 12px;
+      padding: 14px;
+      position: relative;
+      border: 1px solid #F2F4F7;
+      transition: 0.2s;
+    }
+
+    .ins-card:hover {
+      border-color: var(--primary);
+      background: #fff;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
+
+    .ins-card.recommend-cancel {
+      border: 1.5px solid #FFEDEB;
+      background: #FFF9F8;
+    }
+
+    .cancel-tag {
+      position: absolute;
+      top: -6px;
+      right: 10px;
+      background: #FF453A;
+      color: white;
+      padding: 1px 8px;
+      border-radius: 4px;
+      font-size: 9px;
+      font-weight: 800;
+    }
+
+    .label-mini {
+      display: block;
+      font-size: 10px;
+      color: var(--text-mute);
+      margin-bottom: 2px;
+      font-weight: 700;
+    }
+
+    .input-mini {
+      width: 100%;
+      padding: 6px 8px;
+      border-radius: 6px;
+      border: 1px solid #E5E8EB;
+      background: #fff;
+      outline: none;
+      font-size: 12px;
+      color: var(--text-main);
+      font-weight: 600;
+    }
+
+    .input-mini:focus {
+      border-color: var(--primary);
+    }
+
+    .row-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .btn-mini {
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      font-size: 11px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: 0.2s;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--text-mute);
+      border: 1px solid #E5E8EB;
+    }
+
+    .btn-danger-x {
+      background: #FFEDED;
+      color: #FF453A;
+    }
+
+    .summary-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .summary-card {
+      background: #F9FAFB;
+      padding: 12px 16px;
+      border-radius: 12px;
+      border: 1px solid #F2F4F7;
+    }
+
+    .summary-val {
+      font-size: 20px;
+      font-weight: 800;
+      margin: 2px 0;
+    }
+
+    .summary-info {
+      font-size: 11px;
+      color: var(--text-mute);
+      font-weight: 600;
+    }
+
+    .comp-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .comp-table th {
+      text-align: left;
+      padding: 10px;
+      font-size: 11px;
+      color: var(--text-mute);
+      font-weight: 700;
+      border-bottom: 2px solid #F2F4F7;
+    }
+
+    .comp-table td {
+      padding: 6px 10px;
+      border-bottom: 0.5px solid #F2F4F7;
+      font-size: 13px;
+    }
+
+    .table-input {
+      border: 1px solid transparent;
+      width: 100%;
+      padding: 4px;
+      font-size: 13px;
+      font-weight: 700;
+      border-radius: 4px;
+    }
+
+    .table-input:focus {
+      border-color: var(--primary);
+      background: #F9FAFB;
+    }
+
+    .grip-icon {
+      cursor: grab;
+      color: #D1D1D6;
+      margin-right: 4px;
+      padding: 4px;
+    }
+
+    .icon-btn {
+      background: transparent;
+      border: none;
+      padding: 2px;
+      cursor: pointer;
+      color: var(--text-mute);
+      transition: 0.2s;
+    }
+
+    .icon-btn:hover {
+      color: var(--text-main);
+    }
+
+    textarea {
+      width: 100%;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #E5E8EB;
+      background: #F9FAFB;
+      font-size: 13px;
+      min-height: 60px;
+    }
+
+    .diff-plus {
+      color: #3182F6;
+    }
+
+    .diff-minus {
+      color: #F04452;
+    }
+
+    @media (min-width: 1100px) {
+      .ins-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useCallback } = React;
+
+    const DEFAULT_CATS = [
+      { id: 'c1', name: '질병입원의료비', existing: 0, proposed: 0 },
+      { id: 'c2', name: '질병외래의료비', existing: 0, proposed: 0 },
+      { id: 'c3', name: '질병처방조제료', existing: 0, proposed: 0 },
+      { id: 'c4', name: '상해입원의료비', existing: 0, proposed: 0 },
+      { id: 'c5', name: '상해외래의료비', existing: 0, proposed: 0 },
+      { id: 'c6', name: '상해처방조제료', existing: 0, proposed: 0 },
+      { id: 'c7', name: '일반암진단', existing: 0, proposed: 0 },
+      { id: 'c8', name: '소액암(유사암)진단', existing: 0, proposed: 0 },
+      { id: 'c9', name: '고액암진단', existing: 0, proposed: 0 },
+      { id: 'c10', name: '뇌혈관질환진단', existing: 0, proposed: 0 },
+      { id: 'c11', name: '뇌졸중질환진단', existing: 0, proposed: 0 },
+      { id: 'c12', name: '뇌출혈질환진단', existing: 0, proposed: 0 },
+      { id: 'c13', name: '허혈성심장질환진단', existing: 0, proposed: 0 },
+      { id: 'c14', name: '급성심근경색진단', existing: 0, proposed: 0 },
+      { id: 'c15', name: '질병수술', existing: 0, proposed: 0 },
+      { id: 'c16', name: '상해수술', existing: 0, proposed: 0 },
+      { id: 'c17', name: '암수술', existing: 0, proposed: 0 },
+      { id: 'c18', name: '뇌혈관질환수술', existing: 0, proposed: 0 },
+      { id: 'c19', name: '허혈성심장질환수술', existing: 0, proposed: 0 },
+      { id: 'c20', name: '질병입원', existing: 0, proposed: 0 },
+      { id: 'c21', name: '상해입원', existing: 0, proposed: 0 },
+      { id: 'c22', name: '질병사망', existing: 0, proposed: 0 },
+      { id: 'c23', name: '상해사망', existing: 0, proposed: 0 },
+      { id: 'c24', name: '질병80%이상후유장해', existing: 0, proposed: 0 },
+      { id: 'c25', name: '질병80%미만후유장해', existing: 0, proposed: 0 },
+      { id: 'c26', name: '상해80%이상후유장해', existing: 0, proposed: 0 },
+      { id: 'c27', name: '상해80%미만후유장해', existing: 0, proposed: 0 },
+      { id: 'c28', name: '골절진단', existing: 0, proposed: 0 },
+      { id: 'c29', name: '화상진단', existing: 0, proposed: 0 },
+      { id: 'c30', name: '가족생활배상책임담보', existing: 0, proposed: 0 },
+      { id: 'c31', name: '일상생활배상책임담보', existing: 0, proposed: 0 },
+      { id: 'c32', name: '교통사고처리지원금', existing: 0, proposed: 0 },
+      { id: 'c33', name: '벌금(대물)', existing: 0, proposed: 0 },
+      { id: 'c34', name: '벌금(대인)', existing: 0, proposed: 0 },
+      { id: 'c35', name: '변호사선임비용', existing: 0, proposed: 0 },
+      { id: 'c36', name: '자동차부상치료비', existing: 0, proposed: 0 },
+      { id: 'c37', name: '화재벌금', existing: 0, proposed: 0 },
+      { id: 'c38', name: '보존치료', existing: 0, proposed: 0 },
+      { id: 'c39', name: '보철치료', existing: 0, proposed: 0 },
+    ];
+
+    const SECTIONS = [
+      { id: 'existing', title: '기존보험 분석', icon: 'file-search' },
+      { id: 'proposed', title: '제안보험 구성', icon: 'zap' },
+      { id: 'desc', title: '리모델링 의견', icon: 'pen-tool' },
+      { id: 'comp', title: '보험료 변화 요약', icon: 'trending-up' },
+      { id: 'table', title: '보장 상세 비교표', icon: 'list' },
+    ];
+
+    function createData() {
+      return {
+        sections: SECTIONS.map(s => s.id),
+        existingList: [],
+        proposedList: [],
+        description: '',
+        isDescOpen: true,
+        coverageTable: [...DEFAULT_CATS.map(c => ({ ...c, id: Math.random().toString(36).substr(2, 9) }))]
+      };
+    }
+
+    function App() {
+      const [tabs, setTabs] = useState([{ id: 1, name: '안 1', data: createData() }]);
+      const [activeTabId, setActiveTabId] = useState(1);
+      const [header, setHeader] = useState({ title: '홍길동 님의 보험 리모델링 분석', subtitle: '현명한 보험 설계를 위한 비교표' });
+
+      const [dragSec, setDragSec] = useState(null);
+      const [dragRow, setDragRow] = useState(null);
+
+      const activeTab = tabs.find(t => t.id === activeTabId) || tabs[0];
+      const data = activeTab.data;
+
+      const updateData = useCallback((newData) => {
+        setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, data: { ...t.data, ...newData } } : t));
+      }, [activeTabId]);
+
+      const copyTab = () => {
+        if (tabs.length >= 3) return;
+        const nextId = Math.max(...tabs.map(t => t.id), 0) + 1;
+        setTabs([...tabs, { id: nextId, name: `안 ${nextId}`, data: JSON.parse(JSON.stringify(data)) }]);
+        setActiveTabId(nextId);
+      };
+
+      const addIns = (type) => {
+        const item = { id: Date.now(), company: '', product: '', date: '', pay: '', benefit: '', monthly: 0, extra: 0, note: '', type: '비갱신형', status: 'active' };
+        if (type === 'existing') updateData({ existingList: [...data.existingList, item] });
+        else updateData({ proposedList: [...data.proposedList, item] });
+      };
+
+      const sumMonthly = (list) => list.reduce((a, b) => a + (Number(b.monthly) || 0), 0);
+      const sumTotal = (list) => list.reduce((a, b) => a + (Number(b.extra) || 0), 0);
+      const mOld = sumMonthly(data.existingList);
+      const mNew = sumMonthly(data.proposedList);
+      const tOld = sumTotal(data.existingList);
+      const tNew = sumTotal(data.proposedList);
+
+      useEffect(() => { if (window.lucide) lucide.createIcons(); }, [activeTabId, data, dragSec, dragRow]);
+
+      return (
+        <div className="container">
+          <header>
+            <input className="editable-title" spellCheck="false" value={header.title} onChange={e => setHeader({ ...header, title: e.target.value })} />
+            <input className="editable-subtitle" spellCheck="false" value={header.subtitle} onChange={e => setHeader({ ...header, subtitle: e.target.value })} />
+          </header>
+
+          <div className="tabs">
+            {tabs.map(t => (
+              <div key={t.id} className={`tab ${activeTabId === t.id ? 'active' : ''}`} onClick={() => setActiveTabId(t.id)}>
+                <input
+                  value={t.name}
+                  onChange={(e) => setTabs(tabs.map(x => x.id === t.id ? { ...x, name: e.target.value } : x))}
+                  onClick={(e) => e.stopPropagation()}
+                  style={{
+                    border: 'none',
+                    background: 'transparent',
+                    fontWeight: 700,
+                    fontSize: 'inherit',
+                    color: 'inherit',
+                    width: (t.name.length * 12 + 10) + 'px',
+                    minWidth: '40px',
+                    outline: 'none',
+                    textAlign: 'center'
+                  }}
+                />
+                {tabs.length > 1 && (
+                  <span
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const filtered = tabs.filter(x => x.id !== t.id);
+                      setTabs(filtered);
+                      if (activeTabId === t.id) {
+                        setActiveTabId(filtered[0].id);
+                      }
+                    }}
+                    style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', padding: '2px', marginLeft: '4px' }}
+                  >
+                    <i data-lucide="x" style={{ width: 12, height: 12 }}></i>
+                  </span>
+                )}
+              </div>
+            ))}
+            {tabs.length < 3 && <button className="btn-add-tab" onClick={copyTab}>+ 복사해서 제안추가</button>}
+          </div>
+
+          <main>
+            {data.sections.map(sid => {
+              const ref = SECTIONS.find(s => s.id === sid);
+              return (
+                <div key={sid} className={`section-card ${dragSec === sid ? 'dragging' : ''}`} onDragOver={(e) => {
+                  e.preventDefault();
+                  if (!dragSec || dragSec === sid) return;
+                  const ns = [...data.sections];
+                  const fIdx = ns.indexOf(dragSec);
+                  const tIdx = ns.indexOf(sid);
+                  ns.splice(fIdx, 1); ns.splice(tIdx, 0, dragSec);
+                  updateData({ sections: ns });
+                }}>
+                  <div className="section-header" draggable onDragStart={() => setDragSec(sid)} onDragEnd={() => setDragSec(null)}>
+                    <div className="section-title">
+                      <i data-lucide="grip-vertical" className="grip-icon"></i>
+                      <i data-lucide={ref.icon} style={{ width: 16 }}></i> {ref.title}
+                    </div>
+                  </div>
+
+                  {sid === 'existing' && (
+                    <div className="ins-grid">
+                      {data.existingList.map(item => <InsuranceCard key={item.id} type="existing" item={item} onEdit={(f, v) => updateData({ existingList: data.existingList.map(x => x.id === item.id ? { ...x, [f]: v } : x) })} onDel={() => updateData({ existingList: data.existingList.filter(x => x.id !== item.id) })} />)}
+                      <button className="btn-mini btn-ghost" style={{ borderStyle: 'dashed', justifyContent: 'center' }} onClick={() => addIns('existing')}>+ 기존보험 추가</button>
+                    </div>
+                  )}
+
+                  {sid === 'proposed' && (
+                    <div className="ins-grid">
+                      {data.proposedList.map(item => <InsuranceCard key={item.id} type="proposed" item={item} onEdit={(f, v) => updateData({ proposedList: data.proposedList.map(x => x.id === item.id ? { ...x, [f]: v } : x) })} onDel={() => updateData({ proposedList: data.proposedList.filter(x => x.id !== item.id) })} />)}
+                      <button className="btn-mini btn-primary" style={{ justifyContent: 'center' }} onClick={() => addIns('proposed')}>+ 제안보험 추가</button>
+                    </div>
+                  )}
+
+                  {sid === 'desc' && <textarea placeholder="가독성 좋은 상세 의견을 작성하세요..." value={data.description} onChange={e => updateData({ description: e.target.value })}></textarea>}
+
+                  {sid === 'comp' && (
+                    <div className="summary-row">
+                      <div className="summary-card">
+                        <div className="summary-info">월 보험료 차액</div>
+                        <div className={`summary-val ${mNew - mOld > 0 ? 'diff-minus' : 'diff-plus'}`}>{mNew - mOld > 0 ? '+' : ''}{(mNew - mOld).toLocaleString()}원</div>
+                        <div className="summary-info">기존 {mOld.toLocaleString()}원 → 제안 {mNew.toLocaleString()}원</div>
+                      </div>
+                      <div className="summary-card">
+                        <div className="summary-info">총 납입금 예상 차액</div>
+                        <div className={`summary-val ${tNew - tOld > 0 ? 'diff-minus' : 'diff-plus'}`}>{tNew - tOld > 0 ? '+' : ''}{(tNew - tOld).toLocaleString()}원</div>
+                        <div className="summary-info">기존 {tOld.toLocaleString()}원 → 제안 {tNew.toLocaleString()}원</div>
+                      </div>
+                    </div>
+                  )}
+
+                  {sid === 'table' && (
+                    <table className="comp-table">
+                      <thead>
+                        <tr><th style={{ width: 30 }}></th><th>항목</th><th>기존</th><th>제안</th><th style={{ textAlign: 'right' }}>증감</th><th style={{ width: 30 }}></th></tr>
+                      </thead>
+                      <tbody>
+                        {data.coverageTable.map(row => (
+                          <tr key={row.id} onDragOver={(e) => {
+                            e.preventDefault();
+                            if (!dragRow || dragRow === row.id) return;
+                            const nl = [...data.coverageTable];
+                            const fIdx = nl.findIndex(x => x.id === dragRow);
+                            const tIdx = nl.findIndex(x => x.id === row.id);
+                            const [item] = nl.splice(fIdx, 1);
+                            nl.splice(tIdx, 0, item);
+                            updateData({ coverageTable: nl });
+                          }}>
+                            <td draggable onDragStart={() => setDragRow(row.id)} onDragEnd={() => setDragRow(null)}><i data-lucide="grip-vertical" className="grip-icon" style={{ padding: 0 }}></i></td>
+                            <td><input className="table-input" value={row.name} onChange={e => updateData({ coverageTable: data.coverageTable.map(x => x.id === row.id ? { ...x, name: e.target.value } : x) })} /></td>
+                            <td><input type="number" className="table-input" value={row.existing} onChange={e => updateData({ coverageTable: data.coverageTable.map(x => x.id === row.id ? { ...x, existing: e.target.value } : x) })} /></td>
+                            <td><input type="number" className="table-input" value={row.proposed} onChange={e => updateData({ coverageTable: data.coverageTable.map(x => x.id === row.id ? { ...x, proposed: e.target.value } : x) })} /></td>
+                            <td style={{ textAlign: 'right', fontWeight: 800 }} className={row.proposed - row.existing >= 0 ? 'diff-plus' : 'diff-minus'}>{(row.proposed - row.existing).toLocaleString()}</td>
+                            <td><button className="icon-btn" onClick={() => updateData({ coverageTable: data.coverageTable.filter(x => x.id !== row.id) })}><i data-lucide="minus-circle" style={{ width: 14 }}></i></button></td>
+                          </tr>
+                        ))}
+                        <tr><td colSpan="6" style={{ padding: 0 }}><button className="btn-mini btn-ghost" style={{ width: '100%', border: 'none', background: '#F9FAFB' }} onClick={() => updateData({ coverageTable: [...data.coverageTable, { id: Date.now(), name: '', existing: 0, proposed: 0 }] })}>+ 보장 항목 추가</button></td></tr>
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+              );
+            })}
+          </main>
+        </div>
+      );
+    }
+
+    function InsuranceCard({ item, type, onEdit, onDel }) {
+      const isC = item.status === 'cancel';
+      return (
+        <div className={`ins-card ${isC ? 'recommend-cancel' : ''}`}>
+          {isC && <div className="cancel-tag">해지권유</div>}
+          <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
+            <input className="input-mini" placeholder="회사명" value={item.company} onChange={e => onEdit('company', e.target.value)} style={{ flex: 1, border: 'none', background: 'transparent', fontSize: 13, fontWeight: 900, padding: 0 }} />
+            <button className="icon-btn" onClick={onDel}><i data-lucide="x" style={{ width: 14 }}></i></button>
+          </div>
+          <div style={{ marginBottom: 8 }}>
+            <label className="label-mini">상품명 / 종류</label>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <input className="input-mini" value={item.product} onChange={e => onEdit('product', e.target.value)} style={{ flex: 2 }} />
+              <select className="input-mini" value={item.type} onChange={e => onEdit('type', e.target.value)} style={{ flex: 1 }}>
+                <option>비갱신</option><option>갱신형</option><option>실비</option>
+              </select>
+            </div>
+          </div>
+          <div className="row-2">
+            <div><label className="label-mini">보장/납입</label><input className="input-mini" value={item.pay} placeholder="보장세부" onChange={e => onEdit('pay', e.target.value)} /></div>
+            <div><label className="label-mini">가입일</label><input type="date" className="input-mini" value={item.date} onChange={e => onEdit('date', e.target.value)} /></div>
+          </div>
+          <div className="row-2">
+            <div><label className="label-mini">월 보험료</label><input type="number" className="input-mini" value={item.monthly} onChange={e => onEdit('monthly', e.target.value)} /></div>
+            <div><label className="label-mini">{type === 'existing' ? '잔여합' : '총 예상'}</label><input type="number" className="input-mini" value={item.extra} onChange={e => onEdit('extra', e.target.value)} /></div>
+          </div>
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            <div style={{ flex: 1 }}><label className="label-mini">메모(6자)</label><input className="input-mini" maxLength="6" value={item.note} onChange={e => onEdit('note', e.target.value)} /></div>
+            {type === 'existing' && (
+              <button className={`btn-mini ${isC ? 'btn-primary' : 'btn-danger-x'}`} onClick={() => onEdit('status', isC ? 'active' : 'cancel')} style={{ alignSelf: 'flex-end', height: 26 }}>
+                {isC ? '복구' : '해지'}
+              </button>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+
+</html>

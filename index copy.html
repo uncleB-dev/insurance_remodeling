@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>보험 리모델링 제안 대시보드</title>
+  <!-- React & Babel CDN -->
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    @font-face {
+      font-family: 'TossProductSans';
+      src: url('./TossProductSansOTF-Semibold.otf') format('opentype');
+      font-weight: 600;
+      font-style: normal;
+    }
+
+    :root {
+      --primary: #0064FF;
+      --secondary: #E8F3FF;
+      --bg: #F9FAFB;
+      --white: #FFFFFF;
+      --card-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.05);
+      --border-radius: 24px;
+      --text-main: #191F28;
+      --text-sub: #4E5968;
+      --danger: #FF3B30;
+      --success: #3182F6;
+      --border-color: #E5E8EB;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'TossProductSans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      letter-spacing: -0.01em;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text-main);
+      padding: 60px 20px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+
+    /* Header UI */
+    .editable-title {
+      width: 100%;
+      border: none;
+      background: transparent;
+      font-size: 36px;
+      font-weight: 800;
+      margin-bottom: 8px;
+      outline: none;
+      color: var(--text-main);
+      transition: 0.2s;
+    }
+
+    .editable-subtitle {
+      width: 100%;
+      border: none;
+      background: transparent;
+      font-size: 18px;
+      color: var(--text-sub);
+      margin-bottom: 48px;
+      outline: none;
+      font-weight: 500;
+    }
+
+    /* Tabs UI */
+    .tabs {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 32px;
+      padding: 4px;
+      background: #EEF3F6;
+      border-radius: 16px;
+      width: fit-content;
+    }
+
+    .tab {
+      padding: 10px 28px;
+      border-radius: 12px;
+      cursor: pointer;
+      font-weight: 700;
+      white-space: nowrap;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--text-sub);
+    }
+
+    .tab.active {
+      background: var(--white);
+      color: var(--primary);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+      transform: scale(1.02);
+    }
+
+    .btn-add-tab {
+      background: rgba(0, 0, 0, 0.04);
+      border: none;
+      border-radius: 12px;
+      padding: 10px 20px;
+      cursor: pointer;
+      color: var(--text-sub);
+      font-weight: 700;
+      transition: 0.2s;
+    }
+
+    .btn-add-tab:hover {
+      background: rgba(0, 0, 0, 0.08);
+      color: var(--text-main);
+    }
+
+    /* Smooth Card UI (Draggable) */
+    .section-card {
+      background: var(--white);
+      border-radius: var(--border-radius);
+      padding: 32px;
+      margin-bottom: 32px;
+      box-shadow: var(--card-shadow);
+      border: 1px solid rgba(0, 0, 0, 0.02);
+      overflow: hidden;
+      transition: all 0.2s ease;
+    }
+
+    .section-card.dragging {
+      opacity: 0.5;
+      transform: scale(0.98);
+      border: 2px dashed var(--primary);
+    }
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      cursor: grab;
+    }
+
+    .section-header:active {
+      cursor: grabbing;
+    }
+
+    .section-title {
+      font-size: 22px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: var(--text-main);
+    }
+
+    /* Forms & Inputs */
+    .ins-card {
+      background: #F9FAFB;
+      border-radius: 20px;
+      padding: 24px;
+      position: relative;
+      transition: 0.3s ease;
+      border: 1px solid transparent;
+    }
+
+    .ins-card:hover {
+      transform: translateY(-4px);
+      background: #F2F4F7;
+      border-color: rgba(0, 0, 0, 0.05);
+    }
+
+    .ins-card.recommend-cancel {
+      border: 2px solid #FFEDEB;
+      background: #FFF4F3;
+    }
+
+    .cancel-tag {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      background: #FF453A;
+      color: white;
+      padding: 4px 12px;
+      border-radius: 100px;
+      font-size: 11px;
+      font-weight: 800;
+      box-shadow: 0 4px 12px rgba(255, 69, 58, 0.2);
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      color: #6B7684;
+      margin-bottom: 6px;
+      font-weight: 600;
+      padding-left: 2px;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      padding: 12px 16px;
+      border-radius: 12px;
+      border: 1px solid #E5E8EB;
+      background: var(--white);
+      outline: none;
+      font-size: 15px;
+      color: var(--text-main);
+      transition: 0.2s;
+      font-weight: 500;
+    }
+
+    input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(0, 100, 255, 0.1);
+    }
+
+    .btn {
+      padding: 12px 24px;
+      border-radius: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 15px;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #0056D6;
+      transform: translateY(-2px);
+    }
+
+    .btn-outline {
+      background: var(--white);
+      border: 1.5px solid var(--border-color);
+      color: var(--text-main);
+    }
+
+    .btn-outline:hover {
+      background: #F9FAFB;
+    }
+
+    .btn-danger {
+      background: #FF453A;
+      color: white;
+    }
+
+    .btn-danger-soft {
+      background: #FFEDED;
+      color: #FF453A;
+    }
+
+    /* Compare Grid */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+
+    .summary-box {
+      background: #F9FAFB;
+      padding: 24px;
+      border-radius: 20px;
+      border: 1px solid rgba(0, 0, 0, 0.02);
+    }
+
+    .summary-val {
+      font-size: 28px;
+      font-weight: 800;
+      margin: 8px 0;
+      letter-spacing: -0.02em;
+    }
+
+    .summary-label {
+      font-size: 15px;
+      color: #6B7684;
+      font-weight: 600;
+    }
+
+    /* Table UI (Draggable Rows) */
+    .compare-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+
+    .compare-table th {
+      text-align: left;
+      padding: 16px;
+      font-size: 14px;
+      color: #6B7684;
+      font-weight: 700;
+      border-bottom: 2px solid #F2F4F7;
+    }
+
+    .compare-table td {
+      padding: 16px;
+      border-bottom: 1px solid #F2F4F7;
+      transition: all 0.2s;
+    }
+
+    .compare-table tr.dragging {
+      opacity: 0.4;
+      background: #F2F4F7;
+      scale: 0.99;
+    }
+
+    .table-input {
+      border: none;
+      background: transparent;
+      padding: 6px 0;
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .table-input:focus {
+      background: #F2F4F7;
+      padding: 6px 8px;
+      border-radius: 6px;
+    }
+
+    .diff-pos {
+      color: #3182F6;
+      font-weight: 700;
+    }
+
+    .diff-neg {
+      color: #F04452;
+      font-weight: 700;
+    }
+
+    .icon-btn {
+      background: #F2F4F7;
+      border: none;
+      border-radius: 10px;
+      padding: 6px;
+      cursor: pointer;
+      transition: 0.2s;
+      color: #4E5968;
+    }
+
+    .icon-btn:hover {
+      background: #E5E8EB;
+      color: #191F28;
+    }
+
+    .grip-icon {
+      cursor: grab;
+      color: #D1D1D6;
+      margin-right: 8px;
+    }
+
+    .grip-icon:active {
+      cursor: grabbing;
+    }
+
+    .move-btns {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    /* Animations */
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .section-card {
+      animation: fadeIn 0.4s ease-out both;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useCallback, useRef } = React;
+
+    const DEFAULT_CATEGORIES = [
+      { id: 't1', name: '암진단비', existing: 0, proposed: 0 },
+      { id: 't2', name: '뇌혈관진단비', existing: 0, proposed: 0 },
+      { id: 't3', name: '허혈성심장진단비', existing: 0, proposed: 0 },
+      { id: 't4', name: '질병수술비', existing: 0, proposed: 0 },
+      { id: 't5', name: '실손의료비(입원)', existing: 0, proposed: 0 },
+    ];
+
+    const INITIAL_SECTIONS = [
+      { id: 'existing', title: '기존보험 분석', icon: 'file-text' },
+      { id: 'proposed', title: '제안보험 구성', icon: 'check-circle' },
+      { id: 'desc', title: '리모델링 상세 의견', icon: 'edit-3' },
+      { id: 'comp', title: '보험료 변화 비교', icon: 'bar-chart-3' },
+      { id: 'table', title: '보장 상세 비교표', icon: 'layers' },
+    ];
+
+    function createEmptyData() {
+      return {
+        sections: INITIAL_SECTIONS.map(s => s.id),
+        existingList: [],
+        proposedList: [],
+        description: '',
+        isDescOpen: true,
+        coverageTable: [...DEFAULT_CATEGORIES.map(c => ({ ...c, id: Math.random().toString(36).substr(2, 9) }))]
+      };
+    }
+
+    function App() {
+      const [tabs, setTabs] = useState([{ id: 1, name: '안 1', data: createEmptyData() }]);
+      const [activeTabId, setActiveTabId] = useState(1);
+      const [header, setHeader] = useState({ title: '홍길동 님의 보험전후 비교표', subtitle: '고객님을 위한 최적의 보장 리모델링' });
+
+      // States for Drag & Drop
+      const [draggingSection, setDraggingSection] = useState(null);
+      const [draggingRow, setDraggingRow] = useState(null);
+
+      const activeTab = tabs.find(t => t.id === activeTabId) || tabs[0];
+      const data = activeTab.data;
+
+      const updateData = useCallback((newData) => {
+        setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, data: { ...t.data, ...newData } } : t));
+      }, [activeTabId]);
+
+      // Add Tab
+      const addTab = () => {
+        if (tabs.length >= 3) return;
+        const copiedData = JSON.parse(JSON.stringify(data));
+        const nextId = Math.max(...tabs.map(t => t.id), 0) + 1;
+        setTabs([...tabs, { id: nextId, name: `안 ${nextId}`, data: copiedData }]);
+        setActiveTabId(nextId);
+      };
+
+      const delTab = (id, e) => {
+        e.stopPropagation();
+        if (tabs.length <= 1) return;
+        const filtered = tabs.filter(t => t.id !== id);
+        setTabs(filtered);
+        if (activeTabId === id) setActiveTabId(filtered[0].id);
+      };
+
+      // Drag & Drop Handlers - Sections
+      const onSectionDragStart = (id) => setDraggingSection(id);
+      const onSectionDragOver = (e, targetId) => {
+        e.preventDefault();
+        if (!draggingSection || draggingSection === targetId) return;
+        const newSections = [...data.sections];
+        const fromIdx = newSections.indexOf(draggingSection);
+        const targetIdx = newSections.indexOf(targetId);
+        newSections.splice(fromIdx, 1);
+        newSections.splice(targetIdx, 0, draggingSection);
+        updateData({ sections: newSections });
+      };
+      const onSectionDragEnd = () => setDraggingSection(null);
+
+      // Drag & Drop Handlers - Table Rows
+      const onRowDragStart = (id) => setDraggingRow(id);
+      const onRowDragOver = (e, targetId) => {
+        e.preventDefault();
+        if (!draggingRow || draggingRow === targetId) return;
+        const newList = [...data.coverageTable];
+        const fromIdx = newList.findIndex(r => r.id === draggingRow);
+        const targetIdx = newList.findIndex(r => r.id === targetId);
+        const [item] = newList.splice(fromIdx, 1);
+        newList.splice(targetIdx, 0, item);
+        updateData({ coverageTable: newList });
+      };
+      const onRowDragEnd = () => setDraggingRow(null);
+
+      // Actions
+      const addIns = (type) => {
+        const item = { id: Date.now(), company: '', product: '', date: '', pay: '', benefit: '', monthly: 0, extra: 0, note: '', type: '비갱신형보험', status: 'active' };
+        if (type === 'existing') updateData({ existingList: [...data.existingList, item] });
+        else updateData({ proposedList: [...data.proposedList, item] });
+      };
+
+      const editIns = (type, id, field, val) => {
+        const key = type === 'existing' ? 'existingList' : 'proposedList';
+        const list = data[key].map(i => i.id === id ? { ...i, [field]: val } : i);
+        updateData({ [key]: list });
+      };
+
+      const delIns = (type, id) => {
+        const key = type === 'existing' ? 'existingList' : 'proposedList';
+        updateData({ [key]: data[key].filter(i => i.id !== id) });
+      };
+
+      const editRow = (id, field, val) => {
+        updateData({ coverageTable: data.coverageTable.map(r => r.id === id ? { ...r, [field]: val } : r) });
+      };
+
+      const sumMonthly = (list) => list.reduce((a, b) => a + (Number(b.monthly) || 0), 0);
+      const sumTotal = (list) => list.reduce((a, b) => a + (Number(b.extra) || 0), 0);
+
+      const mOld = sumMonthly(data.existingList);
+      const mNew = sumMonthly(data.proposedList);
+      const tOld = sumTotal(data.existingList);
+      const tNew = sumTotal(data.proposedList);
+
+      useEffect(() => {
+        if (window.lucide) lucide.createIcons();
+      }, [activeTabId, data, draggingSection, draggingRow]);
+
+      return (
+        <div className="container">
+          <header>
+            <input className="editable-title" spellCheck="false" value={header.title} onChange={e => setHeader({ ...header, title: e.target.value })} />
+            <input className="editable-subtitle" spellCheck="false" value={header.subtitle} onChange={e => setHeader({ ...header, subtitle: e.target.value })} />
+          </header>
+
+          <div className="tabs">
+            {tabs.map(t => (
+              <div key={t.id} className={`tab ${activeTabId === t.id ? 'active' : ''}`} onClick={() => setActiveTabId(t.id)}>
+                {t.name}
+                {tabs.length > 1 && (
+                  <span onClick={(e) => delTab(t.id, e)} style={{ display: 'flex' }}>
+                    <i data-lucide="x" style={{ width: 14, height: 14 }}></i>
+                  </span>
+                )}
+              </div>
+            ))}
+            {tabs.length < 3 && <button className="btn-add-tab" onClick={addTab}>+ 추가 복사</button>}
+          </div>
+
+          <main>
+            {data.sections.map(sid => {
+              const ref = INITIAL_SECTIONS.find(s => s.id === sid);
+              return (
+                <div
+                  key={sid}
+                  className={`section-card ${draggingSection === sid ? 'dragging' : ''}`}
+                  onDragOver={(e) => onSectionDragOver(e, sid)}
+                >
+                  <div
+                    className="section-header"
+                    draggable="true"
+                    onDragStart={() => onSectionDragStart(sid)}
+                    onDragEnd={onSectionDragEnd}
+                  >
+                    <div className="section-title">
+                      <i data-lucide="grip-vertical" className="grip-icon"></i>
+                      <i data-lucide={ref.icon} style={{ color: '#8B95A1' }}></i> {ref.title}
+                    </div>
+                    <div className="move-btns">
+                      {sid === 'desc' && (
+                        <button className="icon-btn" onClick={() => updateData({ isDescOpen: !data.isDescOpen })}>
+                          <i data-lucide={data.isDescOpen ? 'chevron-up' : 'chevron-down'}></i>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {sid === 'existing' && (
+                    <div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+                        {data.existingList.map(item => (
+                          <InsuranceCard key={item.id} type="existing" item={item} onEdit={(f, v) => editIns('existing', item.id, f, v)} onDel={() => delIns('existing', item.id)} />
+                        ))}
+                      </div>
+                      <button className="btn btn-outline" style={{ marginTop: 20, width: '100%', justifyContent: 'center' }} onClick={() => addIns('existing')}><i data-lucide="plus"></i> 기존보험 추가</button>
+                    </div>
+                  )}
+
+                  {sid === 'proposed' && (
+                    <div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+                        {data.proposedList.map(item => (
+                          <InsuranceCard key={item.id} type="proposed" item={item} onEdit={(f, v) => editIns('proposed', item.id, f, v)} onDel={() => delIns('proposed', item.id)} />
+                        ))}
+                      </div>
+                      <button className="btn btn-primary" style={{ marginTop: 20, width: '100%', justifyContent: 'center' }} onClick={() => addIns('proposed')}><i data-lucide="plus"></i> 제안보험 추가</button>
+                    </div>
+                  )}
+
+                  {sid === 'desc' && data.isDescOpen && (
+                    <textarea rows="4" placeholder="리모델링 상세 의견을 이곳에 입력하세요..." value={data.description} onChange={e => updateData({ description: e.target.value })}></textarea>
+                  )}
+
+                  {sid === 'comp' && (
+                    <div className="summary-grid">
+                      <div className="summary-box">
+                        <div className="summary-label">월 보험료 변화</div>
+                        <div className={`summary-val ${mNew - mOld > 0 ? 'diff-neg' : 'diff-pos'}`}>
+                          {mNew - mOld > 0 ? '+' : ''}{(mNew - mOld).toLocaleString()}원
+                        </div>
+                        <div style={{ fontSize: '14px', color: '#8B95A1', fontWeight: 600 }}>기존 {mOld.toLocaleString()}원 → 제안 {mNew.toLocaleString()}원</div>
+                      </div>
+                      <div className="summary-box">
+                        <div className="summary-label">총 납입 예상 차액</div>
+                        <div className={`summary-val ${tNew - tOld > 0 ? 'diff-neg' : 'diff-pos'}`}>
+                          {tNew - tOld > 0 ? '+' : ''}{(tNew - tOld).toLocaleString()}원
+                        </div>
+                        <div style={{ fontSize: '14px', color: '#8B95A1', fontWeight: 600 }}>기존 잔여 {tOld.toLocaleString()}원 → 제안 합계 {tNew.toLocaleString()}원</div>
+                      </div>
+                    </div>
+                  )}
+
+                  {sid === 'table' && (
+                    <div>
+                      <table className="compare-table">
+                        <thead>
+                          <tr>
+                            <th style={{ width: 40 }}></th>
+                            <th>보장 항목</th>
+                            <th>기존 금액</th>
+                            <th>리모델링 후</th>
+                            <th style={{ textAlign: 'right' }}>변화량</th>
+                            <th>삭제</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {data.coverageTable.map(row => {
+                            const diff = (Number(row.proposed) || 0) - (Number(row.existing) || 0);
+                            return (
+                              <tr
+                                key={row.id}
+                                className={draggingRow === row.id ? 'dragging' : ''}
+                                onDragOver={(e) => onRowDragOver(e, row.id)}
+                              >
+                                <td
+                                  draggable="true"
+                                  onDragStart={() => onRowDragStart(row.id)}
+                                  onDragEnd={onRowDragEnd}
+                                >
+                                  <i data-lucide="grip-vertical" className="grip-icon" style={{ margin: 0 }}></i>
+                                </td>
+                                <td><input className="table-input" value={row.name} onChange={e => editRow(row.id, 'name', e.target.value)} /></td>
+                                <td><input type="number" className="table-input" value={row.existing} onChange={e => editRow(row.id, 'existing', e.target.value)} /></td>
+                                <td><input type="number" className="table-input" value={row.proposed} onChange={e => editRow(row.id, 'proposed', e.target.value)} /></td>
+                                <td style={{ textAlign: 'right' }} className={diff >= 0 ? 'diff-pos' : 'diff-neg'}>
+                                  {diff > 0 ? '+' : ''}{diff.toLocaleString()}원
+                                </td>
+                                <td>
+                                  <button className="icon-btn" onClick={() => updateData({ coverageTable: data.coverageTable.filter(r => r.id !== row.id) })} style={{ color: '#F04452' }}>
+                                    <i data-lucide="trash-2" style={{ width: 14 }}></i>
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                      <button className="btn btn-outline" style={{ marginTop: 20, width: '100%', justifyContent: 'center' }} onClick={() => updateData({ coverageTable: [...data.coverageTable, { id: Date.now(), name: '보장 항목명', existing: 0, proposed: 0 }] })}>
+                        + 보장 항목 추가
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </main>
+        </div>
+      );
+    }
+
+    function InsuranceCard({ item, type, onEdit, onDel }) {
+      const isCanceled = item.status === 'cancel';
+      return (
+        <div className={`ins-card ${isCanceled ? 'recommend-cancel' : ''}`}>
+          {isCanceled && <div className="cancel-tag">해지권유</div>}
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
+            <input placeholder="보험사" value={item.company} onChange={e => onEdit('company', e.target.value)} style={{ border: 'none', background: 'transparent', fontWeight: 800, fontSize: 17, padding: 0 }} />
+            <button className="icon-btn" onClick={onDel} style={{ color: '#F04452' }}><i data-lucide="x" style={{ width: 16 }}></i></button>
+          </div>
+
+          <div className="form-group">
+            <label>상품명</label>
+            <input placeholder="보험 상품 명칭" value={item.product} onChange={e => onEdit('product', e.target.value)} />
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div className="form-group">
+              <label>가입일</label>
+              <input type="date" value={item.date} onChange={e => onEdit('date', e.target.value)} />
+            </div>
+            <div className="form-group">
+              <label>갱신 구분</label>
+              <select value={item.type} onChange={e => onEdit('type', e.target.value)}>
+                <option>비갱신형보험</option>
+                <option>갱신형보험</option>
+                <option>실비보험</option>
+              </select>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div className="form-group">
+              <label>납입기간</label>
+              <input placeholder="20년납" value={item.pay} onChange={e => onEdit('pay', e.target.value)} />
+            </div>
+            <div className="form-group">
+              <label>보장기간</label>
+              <input placeholder="100세만기" value={item.benefit} onChange={e => onEdit('benefit', e.target.value)} />
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div className="form-group">
+              <label>월 보험료</label>
+              <input type="number" placeholder="0" value={item.monthly} onChange={e => onEdit('monthly', e.target.value)} />
+            </div>
+            <div className="form-group">
+              <label>{type === 'existing' ? '잔여 보험료 합' : '기대 총 보험료'}</label>
+              <input type="number" placeholder="0" value={item.extra} onChange={e => onEdit('extra', e.target.value)} />
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label>메모 (6자 이내)</label>
+            <input maxLength="6" placeholder="메모 입력" value={item.note} onChange={e => onEdit('note', e.target.value)} />
+          </div>
+
+          {type === 'existing' && (
+            <button
+              className={`btn ${isCanceled ? 'btn-primary' : 'btn-danger-soft'}`}
+              style={{ width: '100%', marginTop: 12, justifyContent: 'center' }}
+              onClick={() => onEdit('status', isCanceled ? 'active' : 'cancel')}
+            >
+              {isCanceled ? '해지권유 취소하기' : '해지권유 표시하기'}
+            </button>
+          )}
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>보험 리모델링 제안 대시보드</title>
+  <!-- React & Babel CDN -->
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- html2canvas for Image Export -->
+  <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+  <style>
+    @font-face {
+      font-family: 'TossProductSans';
+      src: url('./TossProductSansOTF-Regular.otf') format('opentype');
+      font-weight: 400;
+      font-style: normal;
+    }
+
+    :root {
+      --primary: #3E86F5;
+      --primary-hover: #1B64DA;
+      --bg: #F8F9FB;
+      --white: #FFFFFF;
+      --card-shadow: 0 8px 30px rgba(0, 0, 0, 0.03), 0 2px 10px rgba(0, 0, 0, 0.01);
+      --border-radius-xl: 24px;
+      --border-radius-lg: 20px;
+      --border-radius-sm: 10px;
+      --text-main: #1A1E27;
+      --text-sub: #4E5968;
+      --text-mute: #8B95A1;
+      --border-color: #F2F4F6;
+      --danger: #F04452;
+      --success: #3182F6;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'TossProductSans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      letter-spacing: -0.02em;
+      word-break: keep-all;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text-main);
+      padding: 50px 20px;
+      line-height: 1.4;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      position: relative;
+      width: 100%;
+    }
+
+    header {
+      margin-bottom: 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+    }
+
+    .editable-title {
+      width: 100%;
+      border: none;
+      background: transparent;
+      font-size: 32px;
+      font-weight: 800;
+      margin-bottom: 6px;
+      outline: none;
+      color: var(--text-main);
+    }
+
+    .editable-subtitle {
+      width: 100%;
+      border: none;
+      background: transparent;
+      font-size: 16px;
+      color: var(--text-sub);
+      outline: none;
+    }
+
+    /* Tabs */
+    .tabs-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 6px;
+      padding: 5px;
+      background: #EEEFF3;
+      border-radius: 14px;
+    }
+
+    .tab {
+      padding: 8px 20px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 13px;
+      transition: 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--text-sub);
+    }
+
+    .tab.active {
+      background: var(--white);
+      color: var(--primary);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
+
+    .btn-export {
+      background: var(--white);
+      border: 2px solid var(--primary);
+      color: var(--primary);
+      padding: 9px 18px;
+      border-radius: 12px;
+      font-weight: 800;
+      font-size: 13px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Section Card */
+    .section-card {
+      background: var(--white);
+      border-radius: var(--border-radius-xl);
+      padding: 25px;
+      margin-bottom: 22px;
+      box-shadow: var(--card-shadow);
+      border: 1px solid rgba(0, 0, 0, 0.005);
+    }
+
+    .section-title {
+      font-size: 19px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-main);
+      margin-bottom: 15px;
+    }
+
+    /* Slim Insurance Card */
+    .ins-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 15px;
+    }
+
+    .ins-card {
+      background: #F9FAFB;
+      border-radius: 16px;
+      padding: 15px;
+      position: relative;
+      border: 1px solid #F0F2F4;
+      transition: 0.2s;
+    }
+
+    .ins-card.recommend-cancel {
+      border: 2px solid #FFEDEB;
+      background: #FFF9F8;
+    }
+
+    .card-line {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+      min-height: 24px;
+    }
+
+    .card-line:last-child {
+      margin-bottom: 0;
+    }
+
+    .input-slim {
+      border: none;
+      background: transparent;
+      padding: 4px;
+      font-size: 13.5px;
+      font-weight: 700;
+      color: var(--text-main);
+      outline: none;
+      border-radius: 6px;
+      width: 100%;
+    }
+
+    .input-slim:focus {
+      background: #fff;
+      box-shadow: inset 0 0 0 1px #E9EBEE;
+    }
+
+    .input-slim::placeholder {
+      color: #BEC3CC;
+      font-weight: 400;
+      font-size: 12px;
+    }
+
+    .unit-text {
+      font-size: 11px;
+      color: var(--text-mute);
+      font-weight: 900;
+      white-space: nowrap;
+      margin-top: 1px;
+    }
+
+    .static-val {
+      font-size: 13.5px;
+      font-weight: 800;
+      color: var(--text-main);
+    }
+
+    .btn-card-action {
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 800;
+      cursor: pointer;
+      border: none;
+      white-space: nowrap;
+      transition: 0.2s;
+    }
+
+    .btn-cancel {
+      background: #FFEAEE;
+      color: var(--danger);
+    }
+
+    .btn-cancel.active {
+      background: var(--primary);
+      color: white;
+    }
+
+    .btn-delete {
+      background: #F2F4F6;
+      color: var(--text-mute);
+    }
+
+    /* Export Stabilization Styles */
+    .export-hide {
+      transition: opacity 0.2s;
+    }
+
+    body.exporting .export-hide {
+      display: none !important;
+    }
+
+    body.exporting .tabs-container {
+      display: none !important;
+    }
+
+    body.exporting .container {
+      padding: 80px !important;
+      max-width: 1100px !important;
+      width: 1100px !important;
+      margin: 0 auto;
+      background: var(--bg);
+    }
+
+    body.exporting .section-card {
+      border: 1px solid #EEE;
+      box-shadow: none;
+    }
+
+    body.exporting .ins-card {
+      border: 1px solid #EEE;
+      padding: 18px;
+      width: 320px !important;
+    }
+
+    body.exporting .static-val {
+      line-height: 1.5;
+      overflow: visible;
+      display: block;
+    }
+
+    /* Table */
+    .comp-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .comp-table th {
+      text-align: left;
+      padding: 12px;
+      font-size: 11px;
+      color: var(--text-mute);
+      font-weight: 700;
+      border-bottom: 2px solid #F2F4F6;
+    }
+
+    .comp-table td {
+      padding: 8px 12px;
+      border-bottom: 1px solid #F8F9FA;
+      font-size: 13px;
+    }
+
+    .table-input {
+      border: none;
+      background: transparent;
+      width: 100%;
+      padding: 4px;
+      font-size: 13.5px;
+      font-weight: 700;
+      outline: none;
+    }
+
+    .summary-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+
+    .summary-card {
+      background: #F9FAFB;
+      padding: 20px;
+      border-radius: 20px;
+      border: 1px solid #F0F2F4;
+    }
+
+    .summary-val {
+      font-size: 24px;
+      font-weight: 800;
+      margin: 4px 0;
+    }
+
+    .summary-info {
+      font-size: 12px;
+      color: var(--text-mute);
+      font-weight: 700;
+    }
+
+    textarea {
+      width: 100%;
+      padding: 18px;
+      border-radius: 20px;
+      border: 1.5px solid #E9EBEE;
+      background: #F9FAFB;
+      font-size: 14.5px;
+      min-height: 100px;
+      outline: none;
+      resize: none;
+      line-height: 1.6;
+    }
+
+    body.exporting textarea {
+      border: none;
+      background: transparent;
+      padding: 0;
+      min-height: auto;
+    }
+
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    .modal {
+      background: var(--white);
+      padding: 35px;
+      border-radius: 28px;
+      width: 400px;
+      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.2);
+    }
+
+    .diff-plus {
+      color: var(--success);
+      font-weight: 800;
+    }
+
+    .diff-minus {
+      color: var(--danger);
+      font-weight: 800;
+    }
+
+    @media (min-width: 1000px) {
+      .ins-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useCallback, useRef } = React;
+
+    const DEFAULT_CATS = [
+      { id: 'c1', name: '질병입원의료비', existing: 0, proposed: 0 },
+      { id: 'c2', name: '질병외래의료비', existing: 0, proposed: 0 },
+      { id: 'c3', name: '질병처방조제료', existing: 0, proposed: 0 },
+      { id: 'c4', name: '상해입원의료비', existing: 0, proposed: 0 },
+      { id: 'c5', name: '상해외래의료비', existing: 0, proposed: 0 },
+      { id: 'c6', name: '상해처방조제료', existing: 0, proposed: 0 },
+      { id: 'c7', name: '일반암진단', existing: 0, proposed: 0 },
+      { id: 'c8', name: '소액암(유사암)진단', existing: 0, proposed: 0 },
+      { id: 'c9', name: '고액암진단', existing: 0, proposed: 0 },
+      { id: 'c10', name: '뇌혈관질환진단', existing: 0, proposed: 0 },
+      { id: 'c11', name: '뇌졸중질환진단', existing: 0, proposed: 0 },
+      { id: 'c12', name: '뇌출혈질환진단', existing: 0, proposed: 0 },
+      { id: 'c13', name: '허혈성심장질환진단', existing: 0, proposed: 0 },
+      { id: 'c14', name: '급성심근경색진단', existing: 0, proposed: 0 },
+      { id: 'c15', name: '질병수술', existing: 0, proposed: 0 },
+      { id: 'c16', name: '상해수술', existing: 0, proposed: 0 },
+      { id: 'c17', name: '암수술', existing: 0, proposed: 0 },
+      { id: 'c18', name: '뇌혈관질환수술', existing: 0, proposed: 0 },
+      { id: 'c19', name: '허혈성심장질환수술', existing: 0, proposed: 0 },
+      { id: 'c20', name: '질병입원', existing: 0, proposed: 0 },
+      { id: 'c21', name: '상해입원', existing: 0, proposed: 0 },
+      { id: 'c22', name: '질병사망', existing: 0, proposed: 0 },
+      { id: 'c23', name: '상해사망', existing: 0, proposed: 0 },
+      { id: 'c24', name: '질병80%이상후유장해', existing: 0, proposed: 0 },
+      { id: 'c25', name: '질병80%미만후유장해', existing: 0, proposed: 0 },
+      { id: 'c26', name: '상해80%이상후유장해', existing: 0, proposed: 0 },
+      { id: 'c27', name: '상해80%미만후유장해', existing: 0, proposed: 0 },
+      { id: 'c28', name: '골절진단', existing: 0, proposed: 0 },
+      { id: 'c29', name: '화상진단', existing: 0, proposed: 0 },
+      { id: 'c30', name: '가족생활배상책임담보', existing: 0, proposed: 0 },
+      { id: 'c31', name: '일상생활배상책임담보', existing: 0, proposed: 0 },
+      { id: 'c32', name: '교통사고처리지원금', existing: 0, proposed: 0 },
+      { id: 'c33', name: '벌금(대물)', existing: 0, proposed: 0 },
+      { id: 'c34', name: '벌금(대인)', existing: 0, proposed: 0 },
+      { id: 'c35', name: '변호사선임비용', existing: 0, proposed: 0 },
+      { id: 'c36', name: '자동차부상치료비', existing: 0, proposed: 0 },
+      { id: 'c37', name: '화재벌금', existing: 0, proposed: 0 },
+      { id: 'c38', name: '보존치료', existing: 0, proposed: 0 },
+      { id: 'c39', name: '보철치료', existing: 0, proposed: 0 },
+    ];
+
+    const SECTIONS = [
+      { id: 'existing', title: '기존보험 정밀 분석', icon: 'file-search' },
+      { id: 'proposed', title: '제안보험 맞춤 설계', icon: 'sparkles' },
+      { id: 'desc', title: '리모델링 핵심 포인트', icon: 'clipboard-list' },
+      { id: 'comp', title: '보험료 변화 요약', icon: 'trending-up' },
+      { id: 'table', title: '보장 상세 비교 자료', icon: 'layout' },
+    ];
+
+    function createData() {
+      return {
+        sections: SECTIONS.map(s => s.id),
+        existingList: [],
+        proposedList: [],
+        description: '',
+        coverageTable: [...DEFAULT_CATS.map(c => ({ ...c, id: Math.random().toString(36).substr(2, 9) }))]
+      };
+    }
+
+    function App() {
+      const [tabs, setTabs] = useState([{ id: 1, name: '안 1', data: createData() }]);
+      const [activeTabId, setActiveTabId] = useState(1);
+      const [header, setHeader] = useState({ title: '홍길동 님의 보험 리모델링 분석표', subtitle: '현명한 설계사가 제안하는 최적의 보장 밸런스' });
+
+      const [dragSec, setDragSec] = useState(null);
+      const [showExportModal, setShowExportModal] = useState(false);
+      const [selectedSections, setSelectedSections] = useState(SECTIONS.map(s => s.id));
+      const [isExporting, setIsExporting] = useState(false);
+
+      const containerRef = useRef(null);
+      const activeTab = tabs.find(t => t.id === activeTabId) || tabs[0];
+      const data = activeTab.data;
+
+      const updateData = useCallback((newData) => {
+        setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, data: { ...t.data, ...newData } } : t));
+      }, [activeTabId]);
+
+      const copyTab = () => {
+        if (tabs.length >= 3) return;
+        const nextId = Math.max(...tabs.map(t => t.id), 0) + 1;
+        setTabs([...tabs, { id: nextId, name: `안 ${nextId}`, data: JSON.parse(JSON.stringify(data)) }]);
+        setActiveTabId(nextId);
+      };
+
+      const addIns = (type) => {
+        const item = { id: Date.now(), company: '', product: '', date: '', pay: '', benefit: '', monthly: 0, extra: 0, note: '', type: '비갱신성', status: 'active' };
+        if (type === 'existing') updateData({ existingList: [...data.existingList, item] });
+        else updateData({ proposedList: [...data.proposedList, item] });
+      };
+
+      const handleExport = async () => {
+        setShowExportModal(false);
+        setIsExporting(true);
+        document.body.classList.add('exporting');
+
+        // Extra margin time for layout engine to stabilize after switching to exporting mode
+        setTimeout(async () => {
+          const canvas = await html2canvas(containerRef.current, {
+            scale: 2,
+            backgroundColor: '#F8F9FB',
+            useCORS: true,
+            logging: false,
+            windowWidth: 1200
+          });
+          const link = document.createElement('a');
+          link.download = `${header.title}_${activeTab.name}.png`;
+          link.href = canvas.toDataURL('image/png');
+          link.click();
+          document.body.classList.remove('exporting');
+          setIsExporting(false);
+        }, 300);
+      };
+
+      const sumMonthly = (list) => list.reduce((a, b) => a + (Number(b.monthly) || 0), 0);
+      const sumTotal = (list) => list.reduce((a, b) => a + (Number(b.extra) || 0), 0);
+      const mBefore = sumMonthly(data.existingList);
+      const tBefore = sumTotal(data.existingList);
+      const existingRemaining = data.existingList.filter(item => item.status !== 'cancel');
+      const mAfter = sumMonthly(existingRemaining) + sumMonthly(data.proposedList);
+      const tAfter = sumTotal(existingRemaining) + sumTotal(data.proposedList);
+      const mDiff = mAfter - mBefore;
+      const tDiff = tAfter - tBefore;
+
+      useEffect(() => { if (window.lucide) lucide.createIcons(); }, [activeTabId, data, dragSec, isExporting]);
+
+      return (
+        <div className="container" ref={containerRef}>
+          <header>
+            <div style={{ flex: 1 }}>
+              <input className="editable-title" spellCheck="false" value={header.title} onChange={e => setHeader({ ...header, title: e.target.value })} />
+              <input className="editable-subtitle" spellCheck="false" value={header.subtitle} onChange={e => setHeader({ ...header, subtitle: e.target.value })} />
+            </div>
+            <button className="btn-export export-hide" onClick={() => setShowExportModal(true)}>리포트 이미지 저장</button>
+          </header>
+
+          <div className="tabs-container">
+            <div className="tabs">
+              {tabs.map(t => (
+                <div key={t.id} className={`tab ${activeTabId === t.id ? 'active' : ''}`} onClick={() => setActiveTabId(t.id)}>
+                  <input value={t.name} onChange={(e) => setTabs(tabs.map(x => x.id === t.id ? { ...x, name: e.target.value } : x))} onClick={(e) => e.stopPropagation()} style={{ border: 'none', background: 'transparent', fontWeight: 700, fontSize: 'inherit', color: 'inherit', width: (t.name.length * 11 + 10) + 'px', outline: 'none', textAlign: 'center' }} />
+                  {tabs.length > 1 && <span onClick={(e) => { e.stopPropagation(); const f = tabs.filter(x => x.id !== t.id); setTabs(f); if (activeTabId === t.id) setActiveTabId(f[0].id); }} style={{ display: 'flex', padding: '2px', marginLeft: 4, cursor: 'pointer' }}><i data-lucide="x" style={{ width: 10, opacity: 0.5 }}></i></span>}
+                </div>
+              ))}
+            </div>
+            {tabs.length < 3 && <button className="btn-add-tab" onClick={copyTab}>+ 제안 추가</button>}
+          </div>
+
+          <main>
+            {data.sections.map(sid => {
+              if (!selectedSections.includes(sid) && isExporting) return null;
+              const ref = SECTIONS.find(s => s.id === sid);
+              return (
+                <div key={sid} className={`section-card ${dragSec === sid ? 'dragging' : ''}`} onDragOver={(e) => {
+                  e.preventDefault();
+                  if (!dragSec || dragSec === sid) return;
+                  const ns = [...data.sections];
+                  const fIdx = ns.indexOf(dragSec);
+                  const tIdx = ns.indexOf(sid);
+                  ns.splice(fIdx, 1); ns.splice(tIdx, 0, dragSec);
+                  updateData({ sections: ns });
+                }}>
+                  <div className="section-header" draggable={!isExporting} onDragStart={() => setDragSec(sid)} onDragEnd={() => setDragSec(null)}>
+                    <div className="section-title">
+                      <i data-lucide="grip-vertical" className="grip-icon export-hide"></i> {ref.title}
+                    </div>
+                  </div>
+
+                  {sid === 'existing' && (
+                    <div className="ins-grid">
+                      {data.existingList.map(item => <InsuranceCard key={item.id} type="existing" item={item} onEdit={(f, v) => updateData({ existingList: data.existingList.map(x => x.id === item.id ? { ...x, [f]: v } : x) })} onDel={() => updateData({ existingList: data.existingList.filter(x => x.id !== item.id) })} isExporting={isExporting} />)}
+                      {!isExporting && <button className="btn-mini btn-ghost export-hide" style={{ borderStyle: 'dashed', height: 80, width: '100%', justifyContent: 'center' }} onClick={() => addIns('existing')}>+ 기존보험 추가</button>}
+                    </div>
+                  )}
+
+                  {sid === 'proposed' && (
+                    <div className="ins-grid">
+                      {data.proposedList.map(item => <InsuranceCard key={item.id} type="proposed" item={item} onEdit={(f, v) => updateData({ proposedList: data.proposedList.map(x => x.id === item.id ? { ...x, [f]: v } : x) })} onDel={() => updateData({ proposedList: data.proposedList.filter(x => x.id !== item.id) })} isExporting={isExporting} />)}
+                      {!isExporting && <button className="btn-mini btn-primary export-hide" style={{ height: 80, width: '100%', justifyContent: 'center' }} onClick={() => addIns('proposed')}>+ 제안보험 추가</button>}
+                    </div>
+                  )}
+
+                  {sid === 'desc' && <textarea disabled={isExporting} placeholder="리모델링 핵심 분석 내용을 입력하세요..." value={data.description} onChange={e => updateData({ description: e.target.value })}></textarea>}
+
+                  {sid === 'comp' && (
+                    <div className="summary-row">
+                      <div className="summary-card">
+                        <div className="summary-info">월 납입 보험료 변화</div>
+                        <div className={`summary-val ${mDiff > 0 ? 'diff-minus' : 'diff-plus'}`}>{mDiff > 0 ? '+' : ''}{mDiff.toLocaleString()}원</div>
+                        <div className="summary-info">기존 {mBefore.toLocaleString()}원 → 제안 {mAfter.toLocaleString()}원</div>
+                      </div>
+                      <div className="summary-card">
+                        <div className="summary-info">총 납입 예상액 변화</div>
+                        <div className={`summary-val ${tDiff > 0 ? 'diff-minus' : 'diff-plus'}`}>{tDiff > 0 ? '+' : ''}{tDiff.toLocaleString()}원</div>
+                        <div className="summary-info">기존 {tBefore.toLocaleString()}원 → 제안 {tAfter.toLocaleString()}원</div>
+                      </div>
+                    </div>
+                  )}
+
+                  {sid === 'table' && (
+                    <div style={{ overflowX: 'auto' }}>
+                      <table className="comp-table">
+                        <thead>
+                          <tr><th className="export-hide" style={{ width: 20 }}></th><th>항목</th><th>기존</th><th>제안</th><th style={{ textAlign: 'right' }}>변동</th><th className="export-hide" style={{ width: 20 }}></th></tr>
+                        </thead>
+                        <tbody>
+                          {data.coverageTable.map(row => (
+                            <tr key={row.id}>
+                              <td className="export-hide"><i data-lucide="grip-vertical" style={{ width: 12, color: '#EEE' }}></i></td>
+                              <td><StaticOrInput isExporting={isExporting} value={row.name} onChange={v => updateData({ coverageTable: data.coverageTable.map(x => x.id === row.id ? { ...x, name: v } : x) })} className="table-input" /></td>
+                              <td><StaticOrInput isExporting={isExporting} type="number" value={row.existing} onChange={v => updateData({ coverageTable: data.coverageTable.map(x => x.id === row.id ? { ...x, existing: v } : x) })} className="table-input" /></td>
+                              <td><StaticOrInput isExporting={isExporting} type="number" value={row.proposed} onChange={v => updateData({ coverageTable: data.coverageTable.map(x => x.id === row.id ? { ...x, proposed: v } : x) })} className="table-input" /></td>
+                              <td style={{ textAlign: 'right' }} className={row.proposed - row.existing >= 0 ? 'diff-plus' : 'diff-minus'}>{(row.proposed - row.existing).toLocaleString()}</td>
+                              <td className="export-hide"><button className="icon-btn" onClick={() => updateData({ coverageTable: data.coverageTable.filter(x => x.id !== row.id) })}><i data-lucide="minus-circle" style={{ width: 12 }}></i></button></td>
+                            </tr>
+                          ))}
+                          {!isExporting && <tr><td colSpan="6"><button className="btn-mini btn-ghost export-hide" style={{ width: '100%', border: 'none', height: 35 }} onClick={() => updateData({ coverageTable: [...data.coverageTable, { id: Date.now(), name: '', existing: 0, proposed: 0 }] })}>+ 보장 추가</button></td></tr>}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </main>
+
+          {showExportModal && (
+            <div className="modal-overlay" onClick={() => setShowExportModal(false)}>
+              <div className="modal" onClick={e => e.stopPropagation()}>
+                <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 18, textAlign: 'center' }}>리포트 출력 구성</div>
+                <div style={{ background: '#F8F9FB', padding: 15, borderRadius: 16, marginBottom: 20 }}>
+                  {SECTIONS.map(s => (
+                    <label key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 8, cursor: 'pointer' }}>
+                      <input type="checkbox" checked={selectedSections.includes(s.id)} onChange={e => {
+                        if (e.target.checked) setSelectedSections([...selectedSections, s.id]);
+                        else setSelectedSections(selectedSections.filter(x => x !== s.id));
+                      }} style={{ width: 18, height: 18 }} />
+                      <span style={{ fontSize: 15, fontWeight: 700, color: selectedSections.includes(s.id) ? 'var(--primary)' : 'var(--text-sub)' }}>{s.title}</span>
+                    </label>
+                  ))}
+                </div>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button className="btn-mini btn-ghost" style={{ flex: 1, height: 45, justifyContent: 'center' }} onClick={() => setShowExportModal(false)}>취소</button>
+                  <button className="btn-mini btn-primary" style={{ flex: 1, height: 45, justifyContent: 'center', fontSize: 14 }} onClick={handleExport}>리포트 이미지 생성</button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    function StaticOrInput({ isExporting, value, onChange, className, placeholder, style, type = "text" }) {
+      if (isExporting) {
+        return <div className={`static-val ${className}`} style={style}>{type === 'number' ? Number(value).toLocaleString() : (value || '')}</div>;
+      }
+      return <input type={type} className={className} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} style={style} />;
+    }
+
+    function InsuranceCard({ item, type, onEdit, onDel, isExporting }) {
+      const isC = item.status === 'cancel';
+      return (
+        <div className={`ins-card ${isC ? 'recommend-cancel' : ''}`}>
+          {/* Line 1 */}
+          <div className="card-line">
+            <StaticOrInput isExporting={isExporting} placeholder="보험사명" value={item.company} onChange={v => onEdit('company', v)} style={{ flex: 1.5, fontSize: 15, fontWeight: 900 }} />
+            <StaticOrInput isExporting={isExporting} placeholder="메모(6자)" value={item.note} onChange={v => onEdit('note', v)} style={{ flex: 1.2 }} />
+            {type === 'existing' && !isExporting && (
+              <button className={`btn-card-action btn-cancel ${isC ? 'active' : ''}`} onClick={() => onEdit('status', isC ? 'active' : 'cancel')}>
+                {isC ? '복구' : '해지권유'}
+              </button>
+            )}
+            {!isExporting && <button className="btn-card-action btn-delete" onClick={onDel}>삭제</button>}
+            {isExporting && isC && <span style={{ fontSize: 11, fontWeight: 900, color: 'var(--danger)', border: '1.5px solid var(--danger)', padding: '2px 4px', borderRadius: 4 }}>해지권유</span>}
+          </div>
+
+          {/* Line 2 */}
+          <div className="card-line">
+            <StaticOrInput isExporting={isExporting} placeholder="보험 상품명" value={item.product} onChange={v => onEdit('product', v)} style={{ flex: 2, fontSize: 14 }} />
+            {isExporting ? <div className="static-val" style={{ fontSize: 12, color: 'var(--primary)' }}>{item.type}</div> : (
+              <select className="input-slim" style={{ flex: 1, color: 'var(--primary)' }} value={item.type} onChange={e => onEdit('type', e.target.value)}>
+                <option>비갱신</option><option>갱신형</option><option>실비</option>
+              </select>
+            )}
+          </div>
+
+          {/* Line 3 */}
+          <div className="card-line">
+            <StaticOrInput isExporting={isExporting} placeholder="납입/보장 (예: 20년/100세)" value={item.pay} onChange={v => onEdit('pay', v)} style={{ flex: 1.2 }} />
+            <div style={{ flex: 1 }}>
+              {isExporting ? <div className="static-val" style={{ fontSize: 12, color: 'var(--text-mute)' }}>{item.date || '-'}</div> : (
+                <input type="date" className="input-slim" value={item.date} onChange={e => onEdit('date', e.target.value)} style={{ fontSize: 12 }} />
+              )}
+            </div>
+          </div>
+
+          {/* Line 4 */}
+          <div className="card-line">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+              <span className="unit-text">월</span>
+              <StaticOrInput isExporting={isExporting} type="number" value={item.monthly} onChange={v => onEdit('monthly', v)} style={{ width: 70 }} />
+              <span className="unit-text">원</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 3, marginLeft: 10 }}>
+              <span className="unit-text">잔여.계</span>
+              <StaticOrInput isExporting={isExporting} type="number" value={item.extra} onChange={v => onEdit('extra', v)} style={{ width: 100 }} />
+              <span className="unit-text">원</span>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+
+</html>
