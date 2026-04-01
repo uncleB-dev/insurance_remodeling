@@ -168,8 +168,7 @@
     .ins-card {
       background: #F9FAFB;
       border-radius: 16px;
-      padding: 15px;
-      position: relative;
+      padding: 12px 14px;
       border: 1px solid #F0F2F4;
       transition: 0.2s;
     }
@@ -177,7 +176,7 @@
     .ins-card:hover {
       border-color: var(--primary);
       background: #fff;
-      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.03);
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.03);
     }
 
     .ins-card.recommend-cancel {
@@ -185,6 +184,71 @@
       background: #FFF9F8;
     }
 
+    .card-row {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-bottom: 7px;
+    }
+
+    .card-row:last-child {
+      margin-bottom: 0;
+    }
+
+    /* 커드 필드 공통 스타일 */
+    .cf {
+      border: none;
+      background: transparent;
+      padding: 3px 4px;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-main);
+      outline: none;
+      border-radius: 5px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      min-width: 0;
+    }
+
+    .cf::placeholder {
+      color: #C8CDD4;
+      font-weight: 400;
+      font-size: 11px;
+    }
+
+    .cf:focus {
+      background: #fff;
+      box-shadow: inset 0 0 0 1px #E0E4EA;
+    }
+
+    .cf-label {
+      font-size: 10px;
+      color: var(--text-mute);
+      font-weight: 900;
+      white-space: nowrap;
+      padding: 2px;
+      flex-shrink: 0;
+    }
+
+    .cf-divider {
+      width: 1px;
+      background: #E8EAED;
+      align-self: stretch;
+      margin: 0 4px;
+      flex-shrink: 0;
+    }
+
+    /* 달력 아이콘 은단 */
+    input[type='date']::-webkit-calendar-picker-indicator {
+      display: none !important;
+    }
+
+    input[type='date']::-webkit-inner-spin-button {
+      display: none !important;
+    }
+
+    /* 이전 .card-line .input-slim .unit-text 호환 유지 */
     .card-line {
       display: flex;
       align-items: center;
@@ -273,10 +337,15 @@
       display: none !important;
     }
 
+    body.exporting {
+      overflow: visible !important;
+      min-width: 1260px;
+    }
+
     body.exporting .container {
       padding: 80px !important;
-      max-width: 1100px !important;
-      width: 1100px !important;
+      max-width: 1260px !important;
+      width: 1260px !important;
       margin: 0 auto;
       background: var(--bg);
     }
@@ -293,9 +362,53 @@
     }
 
     body.exporting .static-val {
-      line-height: 1.5;
-      overflow: visible;
+      line-height: 1.6;
+      overflow: visible !important;
       display: block;
+      white-space: normal;
+      word-break: keep-all;
+      min-width: 0;
+    }
+
+    /* Export: 모든 요소 overflow 해제 */
+    body.exporting * {
+      overflow: visible !important;
+      text-overflow: clip !important;
+      white-space: normal !important;
+    }
+
+    /* Export: 테이블 고정 컬럼 너비 */
+    body.exporting .comp-table {
+      table-layout: fixed;
+      width: 100%;
+    }
+
+    body.exporting .comp-table td:nth-child(2),
+    body.exporting .comp-table th:nth-child(2) {
+      width: 200px;
+      min-width: 200px;
+    }
+
+    body.exporting .comp-table td:nth-child(3),
+    body.exporting .comp-table td:nth-child(4),
+    body.exporting .comp-table th:nth-child(3),
+    body.exporting .comp-table th:nth-child(4) {
+      width: 130px;
+      min-width: 130px;
+    }
+
+    body.exporting .comp-table td:nth-child(5),
+    body.exporting .comp-table th:nth-child(5) {
+      width: 100px;
+      min-width: 100px;
+    }
+
+    body.exporting .table-input,
+    body.exporting .static-val.table-input {
+      width: 100% !important;
+      max-width: none !important;
+      white-space: normal !important;
+      word-break: keep-all;
     }
 
     /* Table */
@@ -504,6 +617,8 @@
       const [dragRow, setDragRow] = useState(null);
       const [showExportModal, setShowExportModal] = useState(false);
       const [selectedSections, setSelectedSections] = useState(SECTIONS.map(s => s.id));
+      const [showMonthly, setShowMonthly] = useState(true);
+      const [showTotal, setShowTotal] = useState(true);
       const [isExporting, setIsExporting] = useState(false);
 
       const containerRef = useRef(null);
@@ -531,13 +646,23 @@
         setShowExportModal(false);
         setIsExporting(true);
         document.body.classList.add('exporting');
+        // DOM 안정화 대기 (레이아웃 리플로우 완료 보장)
         setTimeout(async () => {
-          const canvas = await html2canvas(containerRef.current, {
+          const el = containerRef.current;
+          const fullW = el.scrollWidth;
+          const fullH = el.scrollHeight;
+          const canvas = await html2canvas(el, {
             scale: 2,
             backgroundColor: '#F8F9FB',
             useCORS: true,
+            allowTaint: true,
             logging: false,
-            windowWidth: 1200
+            windowWidth: fullW,
+            windowHeight: fullH,
+            width: fullW,
+            height: fullH,
+            scrollX: -el.getBoundingClientRect().left,
+            scrollY: -el.getBoundingClientRect().top
           });
           const link = document.createElement('a');
           link.download = `${header.title}_${activeTab.name}.png`;
@@ -545,7 +670,7 @@
           link.click();
           document.body.classList.remove('exporting');
           setIsExporting(false);
-        }, 300);
+        }, 500);
       };
 
       const sumMonthly = (list) => list.reduce((a, b) => a + (Number(b.monthly) || 0), 0);
@@ -612,16 +737,20 @@
 
                   {sid === 'comp' && (
                     <div className="summary-row">
-                      <div className="summary-card">
-                        <div className="summary-info">월 납입 보험료 변화</div>
-                        <div className={`summary-val ${mDiff > 0 ? 'diff-minus' : 'diff-plus'}`}>{mDiff > 0 ? '+' : ''}{mDiff.toLocaleString()}원</div>
-                        <div className="summary-info">기존 {mBefore.toLocaleString()}원 → 제안 {mAfter.toLocaleString()}원</div>
-                      </div>
-                      <div className="summary-card">
-                        <div className="summary-info">총 납입 예상액 변화</div>
-                        <div className={`summary-val ${tDiff > 0 ? 'diff-minus' : 'diff-plus'}`}>{tDiff > 0 ? '+' : ''}{tDiff.toLocaleString()}원</div>
-                        <div className="summary-info">기존 {tBefore.toLocaleString()}원 → 제안 {tAfter.toLocaleString()}원</div>
-                      </div>
+                      {(isExporting ? showMonthly : true) && (
+                        <div className="summary-card">
+                          <div className="summary-info">월 납입 보험료 변화</div>
+                          <div className={`summary-val ${mDiff > 0 ? 'diff-minus' : 'diff-plus'}`}>{mDiff > 0 ? '+' : ''}{mDiff.toLocaleString()}원</div>
+                          <div className="summary-info">기존 {mBefore.toLocaleString()}원 → 제안 {mAfter.toLocaleString()}원</div>
+                        </div>
+                      )}
+                      {(isExporting ? showTotal : true) && (
+                        <div className="summary-card">
+                          <div className="summary-info">총 납입 예상액 변화</div>
+                          <div className={`summary-val ${tDiff > 0 ? 'diff-minus' : 'diff-plus'}`}>{tDiff > 0 ? '+' : ''}{tDiff.toLocaleString()}원</div>
+                          <div className="summary-info">기존 {tBefore.toLocaleString()}원 → 제안 {tAfter.toLocaleString()}원</div>
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -673,13 +802,27 @@
                 <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 18, textAlign: 'center' }}>리포트 출력 구성</div>
                 <div style={{ background: '#F8F9FB', padding: 15, borderRadius: 16, marginBottom: 20 }}>
                   {SECTIONS.map(s => (
-                    <label key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 8, cursor: 'pointer' }}>
-                      <input type="checkbox" checked={selectedSections.includes(s.id)} onChange={e => {
-                        if (e.target.checked) setSelectedSections([...selectedSections, s.id]);
-                        else setSelectedSections(selectedSections.filter(x => x !== s.id));
-                      }} style={{ width: 18, height: 18 }} />
-                      <span style={{ fontSize: 15, fontWeight: 700, color: selectedSections.includes(s.id) ? 'var(--primary)' : 'var(--text-sub)' }}>{s.title}</span>
-                    </label>
+                    <div key={s.id}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 8, cursor: 'pointer' }}>
+                        <input type="checkbox" checked={selectedSections.includes(s.id)} onChange={e => {
+                          if (e.target.checked) setSelectedSections([...selectedSections, s.id]);
+                          else setSelectedSections(selectedSections.filter(x => x !== s.id));
+                        }} style={{ width: 18, height: 18 }} />
+                        <span style={{ fontSize: 15, fontWeight: 700, color: selectedSections.includes(s.id) ? 'var(--primary)' : 'var(--text-sub)' }}>{s.title}</span>
+                      </label>
+                      {s.id === 'comp' && selectedSections.includes('comp') && (
+                        <div style={{ marginLeft: 46, display: 'flex', flexDirection: 'column', gap: 4, paddingBottom: 6 }}>
+                          <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                            <input type="checkbox" checked={showMonthly} onChange={e => setShowMonthly(e.target.checked)} style={{ width: 15, height: 15, accentColor: 'var(--primary)' }} />
+                            <span style={{ fontSize: 13, fontWeight: 600, color: showMonthly ? 'var(--primary)' : 'var(--text-mute)' }}>월 보험료 변화</span>
+                          </label>
+                          <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                            <input type="checkbox" checked={showTotal} onChange={e => setShowTotal(e.target.checked)} style={{ width: 15, height: 15, accentColor: 'var(--primary)' }} />
+                            <span style={{ fontSize: 13, fontWeight: 600, color: showTotal ? 'var(--primary)' : 'var(--text-mute)' }}>총 납입 예상액 변화</span>
+                          </label>
+                        </div>
+                      )}
+                    </div>
                   ))}
                 </div>
                 <div style={{ display: 'flex', gap: 10 }}>
@@ -702,47 +845,83 @@
 
     function InsuranceCard({ item, type, onEdit, onDel, isExporting }) {
       const isC = item.status === 'cancel';
+
+      // 필드별 글자수 제한 + export 시 static div 전환
+      const CF = ({ field, maxLen, placeholder, style, numeric }) => {
+        if (isExporting) {
+          const val = numeric ? Number(item[field]).toLocaleString() : (String(item[field] || ''));
+          return <div style={{ fontSize: 13, fontWeight: 700, padding: '2px 4px', color: 'var(--text-main)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', ...style }}>{val}</div>;
+        }
+        return (
+          <input
+            type={numeric ? 'number' : 'text'}
+            className="cf"
+            value={item[field]}
+            maxLength={numeric ? undefined : maxLen}
+            placeholder={placeholder}
+            style={style}
+            onChange={e => {
+              let v = e.target.value;
+              if (!numeric && maxLen && v.length > maxLen) v = v.slice(0, maxLen);
+              onEdit(field, v);
+            }}
+          />
+        );
+      };
+
       return (
         <div className={`ins-card ${isC ? 'recommend-cancel' : ''}`}>
-          <div className="card-line">
-            <StaticOrInput isExporting={isExporting} placeholder="보험사명" value={item.company} onChange={v => onEdit('company', v)} style={{ flex: 1.5, fontSize: 15, fontWeight: 900 }} />
-            <StaticOrInput isExporting={isExporting} placeholder="메모(6자)" value={item.note} onChange={v => onEdit('note', v)} style={{ flex: 1.2 }} />
+
+          {/* Row 1: 보험사명(5자) | 구분 | 메모(6자) | spacer | 해지권유 삭제 */}
+          <div className="card-row">
+            <CF field="company" maxLen={5} placeholder="보험사" style={{ width: '5.5em', fontWeight: 900, fontSize: 14, flexShrink: 0 }} />
+            <div className="cf-divider" />
+            <CF field="note" maxLen={6} placeholder="메모(6자)" style={{ width: '5.5em', fontSize: 12, color: 'var(--text-sub)', flexShrink: 0 }} />
+            <div style={{ flex: 1 }} />
             {type === 'existing' && !isExporting && (
               <button className={`btn-card-action btn-cancel ${isC ? 'active' : ''}`} onClick={() => onEdit('status', isC ? 'active' : 'cancel')}>
                 {isC ? '복구' : '해지권유'}
               </button>
             )}
+            {isExporting && isC && (
+              <span style={{ fontSize: 10, fontWeight: 900, color: 'var(--danger)', border: '1.5px solid var(--danger)', padding: '1px 4px', borderRadius: 4, flexShrink: 0 }}>해지권유</span>
+            )}
             {!isExporting && <button className="btn-card-action btn-delete" onClick={onDel}>삭제</button>}
-            {isExporting && isC && <span style={{ fontSize: 11, fontWeight: 900, color: 'var(--danger)', border: '1.5px solid var(--danger)', padding: '2px 4px', borderRadius: 4 }}>해지권유</span>}
           </div>
-          <div className="card-line">
-            <StaticOrInput isExporting={isExporting} placeholder="보험 상품명" value={item.product} onChange={v => onEdit('product', v)} style={{ flex: 2, fontSize: 14 }} />
-            {isExporting ? <div className="static-val" style={{ fontSize: 12, color: 'var(--primary)' }}>{item.type}</div> : (
-              <select className="input-slim" style={{ flex: 1, color: 'var(--primary)' }} value={item.type} onChange={e => onEdit('type', e.target.value)}>
+
+          {/* Row 2: 상품명(15자) | 드롭다운 */}
+          <div className="card-row">
+            <CF field="product" maxLen={15} placeholder="보험상품명 (최대15자)" style={{ flex: 1, minWidth: 0 }} />
+            {isExporting
+              ? <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--primary)', whiteSpace: 'nowrap', flexShrink: 0, padding: '2px 4px' }}>{item.type}</div>
+              : <select className="cf" style={{ width: 52, color: 'var(--primary)', fontSize: 11, cursor: 'pointer', flexShrink: 0 }} value={item.type} onChange={e => onEdit('type', e.target.value)}>
                 <option>비갱신</option><option>갱신형</option><option>실비</option>
               </select>
-            )}
+            }
           </div>
-          <div className="card-line">
-            <StaticOrInput isExporting={isExporting} placeholder="납입/보장 (예: 20년/100세)" value={item.pay} onChange={v => onEdit('pay', v)} style={{ flex: 1.2 }} />
-            <div style={{ flex: 1 }}>
-              {isExporting ? <div className="static-val" style={{ fontSize: 12, color: 'var(--text-mute)' }}>{item.date || '-'}</div> : (
-                <input type="date" className="input-slim" value={item.date} onChange={e => onEdit('date', e.target.value)} style={{ fontSize: 12 }} />
-              )}
+
+          {/* Row 3: 납입/만기(7자) | 구분 | 가입일자(12자, 텍스트) */}
+          <div className="card-row">
+            <CF field="pay" maxLen={7} placeholder="납입/만기" style={{ width: '7ch', fontSize: 12, flexShrink: 0 }} />
+            <div className="cf-divider" />
+            <CF field="date" maxLen={12} placeholder="YYYY-MM-DD" style={{ flex: 1, fontSize: 12, color: 'var(--text-mute)' }} />
+          </div>
+
+          {/* Row 4: 월보험료 | 구분 | 잔여납입 */}
+          <div className="card-row">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1, minWidth: 0 }}>
+              <span className="cf-label">월</span>
+              <CF field="monthly" placeholder="0" style={{ flex: 1, minWidth: 0 }} numeric />
+              <span className="cf-label">원</span>
+            </div>
+            <div className="cf-divider" />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1, minWidth: 0 }}>
+              <span className="cf-label">잔여</span>
+              <CF field="extra" placeholder="0" style={{ flex: 1, minWidth: 0 }} numeric />
+              <span className="cf-label">원</span>
             </div>
           </div>
-          <div className="card-line">
-            <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-              <span className="unit-text">월</span>
-              <StaticOrInput isExporting={isExporting} type="number" value={item.monthly} onChange={v => onEdit('monthly', v)} style={{ width: 70 }} />
-              <span className="unit-text">원</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 3, marginLeft: 10 }}>
-              <span className="unit-text">잔여.계</span>
-              <StaticOrInput isExporting={isExporting} type="number" value={item.extra} onChange={v => onEdit('extra', v)} style={{ width: 100 }} />
-              <span className="unit-text">원</span>
-            </div>
-          </div>
+
         </div>
       );
     }
